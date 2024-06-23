@@ -11,6 +11,7 @@ set lib=.\lib
 set src=.\src
 set bin=.\bin
 set webappFolder=C:\Program Files\Apache Software Foundation\Tomcat 10.1\webapps
+set views=.\Test\views
 
 rem création du dossier temporaire
 if exist "%temp%" (
@@ -25,6 +26,7 @@ if exist "%temp%" (
 rem Copie des élements indispensables pour tomcat vers temp
 copy /Y  ".\index.jsp" "%temp%"
 xcopy /E /I /Y "%web%\" "%temp%\WEB-INF\"
+xcopy /E /I /Y "%views%\" "%temp%\views"
 
 rem Compilation des codes java vers le dossier bin
 call compilateur.bat
