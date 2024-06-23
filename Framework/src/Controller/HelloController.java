@@ -7,7 +7,7 @@ import Annotations.Get;
 public class HelloController {
 
     @Get(value = "/helloWorld")
-    public void helloWorld() {
-        
+    public String helloWorld() {
+        return "Hello Workd";
     }
 }
