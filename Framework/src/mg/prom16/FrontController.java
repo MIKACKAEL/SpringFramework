@@ -20,7 +20,7 @@ public class FrontController extends HttpServlet {
 
     protected void getControllerList(String package_name) throws ServletException, ClassNotFoundException {
         String bin_path = "WEB-INF/classes/" + package_name.replace(".", "/");
-
+        //
         bin_path = getServletContext().getRealPath(bin_path);
         File b = new File(bin_path);
         list_controller.clear();
