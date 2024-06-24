@@ -35,7 +35,6 @@ public class FrontController extends HttpServlet {
                 for (Method method : clazz.getMethods()) {
                     if (method.isAnnotationPresent(Get.class)) {
                         Mapping mapping = new Mapping(clazz.getName(), method);
-                        // String key = "/"+clazz.getSimpleName()+"/"+method.getName();   
                         String key = method.getAnnotation(Get.class).value();  
                         if (urlMappings.containsKey(key)) {
                             throw new ServletException("La methode '"+urlMappings.get(key).getMethod().getName()+"' possede deja l'URL '"+key+"' comme annotation, donc elle ne peux pas etre assigner a la methode '"+mapping.getMethod().getName()+"'");                        }                   
