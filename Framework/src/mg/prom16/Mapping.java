@@ -1,27 +1,29 @@
 package mg.prom16;
 
+import java.lang.reflect.Method;
+
 public class Mapping {
     private String className;
-    private String methodName;
+    private Method method;
 
-    public Mapping(String className, String methodName) {
+    public Mapping(String className, Method method) {
         this.className = className;
-        this.methodName = methodName;
+        this.method = method;
     }
 
     public String getClassName() {
         return className;
     }
 
-    public String getMethodName() {
-        return methodName;
+    public Method getMethod() {
+        return method;
     }
 
     @Override
     public String toString() {
         return "Mapping{" +
                 "className='" + className + '\'' +
-                ", methodName='" + methodName + '\'' +
+                ", methodName='" + method + '\'' +
                 '}';
     }
 }
