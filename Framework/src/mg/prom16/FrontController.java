@@ -64,11 +64,18 @@ public class FrontController extends HttpServlet {
                 paramMap.put(paramName, request.getParameter(paramName));
             }
             for (int i = 0; i < methodParams.length; i++) {
+                if (methodParams[i].isAnnotationPresent(Param.class)) {
+                    String paramName = methodParams[i].getAnnotation(Param.class).name();
+                    String paramValue = paramMap.get(paramName);
+                    args[i] = paramValue;
+                }
+                else{
                     if (paramMap.containsKey(methodParams[i].getName())) {
                         args[i] = paramMap.get(methodParams[i].getName());
                     } else {
                         args[i] = null;
                     }
+                }
             }
 
             Object instance = clazz.getDeclaredConstructor().newInstance();
