@@ -1,6 +1,7 @@
 package mg.prom16;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
@@ -64,7 +65,18 @@ public class FrontController extends HttpServlet {
                 paramMap.put(paramName, request.getParameter(paramName));
             }
             for (int i = 0; i < methodParams.length; i++) {
-                if (methodParams[i].isAnnotationPresent(Param.class)) {
+                if (methodParams[i].isAnnotationPresent(ObjectAnnotation.class)) {
+                    Class<?> paramType = methodParams[i].getType();
+                    Object paramObject = paramType.getDeclaredConstructor().newInstance();
+                    for (Field field : paramType.getDeclaredFields()) {
+                        String paramName = field.isAnnotationPresent(AttributAnnotation.class) ? field.getAnnotation(AttributAnnotation.class).value() : field.getName();
+                        if (paramMap.containsKey(paramName)) {
+                            field.setAccessible(true);
+                            field.set(paramObject, paramMap.get(paramName));
+                        }
+                    }
+                    args[i] = paramObject;
+                } else if (methodParams[i].isAnnotationPresent(Param.class)) {
                     String paramName = methodParams[i].getAnnotation(Param.class).name();
                     String paramValue = paramMap.get(paramName);
                     args[i] = paramValue;
