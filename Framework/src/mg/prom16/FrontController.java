@@ -12,6 +12,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 
 public class FrontController extends HttpServlet {
@@ -64,7 +65,11 @@ public class FrontController extends HttpServlet {
                 paramMap.put(paramName, request.getParameter(paramName));
             }
             for (int i = 0; i < methodParams.length; i++) {
-                if (methodParams[i].isAnnotationPresent(ObjectAnnotation.class)) {
+                if (methodParams[i].getType().equals(MySession.class)) {
+                    HttpSession session = request.getSession();
+                    MySession mySession = new MySession(session);
+                    args[i] = mySession;
+                } else if (methodParams[i].isAnnotationPresent(ObjectAnnotation.class)) {
                     Class<?> paramType = methodParams[i].getType();
                     Object paramObject = paramType.getDeclaredConstructor().newInstance();
                     for (Field field : paramType.getDeclaredFields()) {
