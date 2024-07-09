@@ -2,8 +2,10 @@ package Controller;
 
 import Annotations.Controller;
 import Annotations.Get;
+import Annotations.ObjectAnnotation;
 import Annotations.Param;
 import mg.prom16.ModelView;
+import mg.prom16.MySession;
 import model.Employe;
 @Controller
 public class EmployeController {
@@ -24,5 +26,22 @@ public class EmployeController {
         mv.setUrl("/views/employePage.jsp");
         mv.addObject("employe", employe);
         return mv;
+    }
+
+    @Get("/employe_session")
+    public String get_employe_session(@Param(name = "id") String id, @ObjectAnnotation MySession mySession) {
+        String sessionId = mySession.getSession().getId();
+        return "Employee ID: " + id + ", Session ID: " + sessionId;
+    }
+
+    @Get("/employe_session_data")
+    public ModelView get_employe_data(@Param(name = "id") String id, @ObjectAnnotation MySession mySession) {
+        ModelView modelView = new ModelView();
+        modelView.setUrl("/employeeView.jsp");
+
+        modelView.addObject("employeeId", id);
+        modelView.addObject("sessionId", mySession.getSession().getId());
+
+        return modelView;
     }
 }
