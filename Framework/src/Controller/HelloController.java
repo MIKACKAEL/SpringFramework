@@ -2,6 +2,7 @@ package Controller;
 
 import Annotations.Controller;
 import Annotations.Get;
+import Annotations.RestApi;
 import mg.prom16.ModelView;
 
 @Controller
@@ -18,5 +19,11 @@ public class HelloController {
         modelView.setUrl("/views/helloWorldPage.jsp");
         modelView.addObject("message", "Hello World");
         return modelView;
+    }
+
+    @RestApi   
+    @Get(value = "/helloWorldApi")
+    public String helloWorldApi() {
+        return "Hello Workd Api";
     }
 }
