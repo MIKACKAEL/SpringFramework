@@ -6,6 +6,9 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
+
+import com.google.gson.Gson;
+
 import Annotations.*;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -121,7 +124,7 @@ public class FrontController extends HttpServlet {
 
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");
+        // response.setContentType("text/html;charset=UTF-8");
 
         String url = request.getRequestURI().substring(request.getContextPath().length());
 
@@ -130,30 +133,50 @@ public class FrontController extends HttpServlet {
             if (mapping != null) {
                 try {
                     Object returnValue = invoke_Method(request, mapping.getClassName(), mapping.getMethod());
-                    if (returnValue instanceof String) {
-                        try (PrintWriter out = response.getWriter()) {
-                            out.println("<p>Contenue de la methode <strong>"+mapping.getMethod().getName()+"</strong> : "+(String) returnValue+"</p>");
+                    Gson gson =new Gson();
+                    if (mapping.getMethod().isAnnotationPresent(RestApi.class)) {
+                        response.setContentType("appliction/gson");
+                        try(PrintWriter out=response.getWriter()){
+                            if (returnValue instanceof ModelView) {
+                                ModelView modelView = (ModelView) returnValue;
+                                HashMap<String, Object> data = modelView.getData();
+                                String jsonData = gson.toJson(data);
+
+                                out.print(jsonData);
+                            } else {
+                                String jsonData = gson.toJson(returnValue);
+                                out.println(jsonData);
+                            }
                         }
-                    } else if (returnValue instanceof ModelView) {
-                        ModelView modelView = (ModelView) returnValue;
-                        String viewUrl = modelView.getUrl();
-                        HashMap<String, Object> data = modelView.getData();
-    
-    
-                        for (Map.Entry<String, Object> entry : data.entrySet()) {
-                            request.setAttribute(entry.getKey(), entry.getValue());
+                    } else {
+                        response.setContentType("text/html;charset=UTF-8");
+                        if (returnValue instanceof String) {
+                            try (PrintWriter out = response.getWriter()) {
+                                out.println("<p>Contenue de la methode <strong>"+mapping.getMethod().getName()+"</strong> : "+(String) returnValue+"</p>");
+                            }
+                        } else if (returnValue instanceof ModelView) {
+                            ModelView modelView = (ModelView) returnValue;
+                            String viewUrl = modelView.getUrl();
+                            HashMap<String, Object> data = modelView.getData();
+        
+        
+                            for (Map.Entry<String, Object> entry : data.entrySet()) {
+                                request.setAttribute(entry.getKey(), entry.getValue());
+                            }
+        
+                            RequestDispatcher dispatcher = request.getRequestDispatcher(viewUrl);
+                            dispatcher.forward(request, response);
+        
+                        } 
+                        else if (returnValue == null) {
+                            throw new ServletException("La methode \""+mapping.getMethod().getName()+"\" retourne une valeur NULL");
                         }
-    
-                        RequestDispatcher dispatcher = request.getRequestDispatcher(viewUrl);
-                        dispatcher.forward(request, response);
-    
-                    } 
-                    else if (returnValue == null) {
-                        throw new ServletException("La methode \""+mapping.getMethod().getName()+"\" retourne une valeur NULL");
+                        else {
+                            throw new ServletException("Le type de retour de l'objet \""+returnValue.getClass().getName()+"\" n'est pas pris en charge par le Framework");
+                        }     
+                        
                     }
-                    else {
-                        throw new ServletException("Le type de retour de l'objet \""+returnValue.getClass().getName()+"\" n'est pas pris en charge par le Framework");
-                    }        
+     
                     
             } catch (NoSuchMethodException | IOException e) {
                 throw new ServletException("Erreur lors de l'invocation de la methode \""+mapping.getMethod().getName()+"\"", null);
