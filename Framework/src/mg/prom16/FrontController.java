@@ -37,17 +37,51 @@ public class FrontController extends HttpServlet {
                 list_controller.add(clazz);
 
                 for (Method method : clazz.getMethods()) {
-                    if (method.isAnnotationPresent(Get.class)) {
-                        Mapping mapping = new Mapping(clazz.getName(), method);
-                        String key = method.getAnnotation(Get.class).value();  
-                        if (urlMappings.containsKey(key)) {
-                            throw new ServletException("La methode '"+urlMappings.get(key).getMethod().getName()+"' possede deja l'URL '"+key+"' comme annotation, donc elle ne peux pas etre assigner a la methode '"+mapping.getMethod().getName()+"'");                        }                   
-                        else{
-                            urlMappings.put(key, mapping);
+                    if (method.isAnnotationPresent(Url.class)) {
+                        String url = method.getAnnotation(Url.class).value();
+                        if (!method.isAnnotationPresent(Get.class) && !method.isAnnotationPresent(Post.class)) {
+                            addMapping(url, clazz, method, "GET");
                         }
+                        
+                        if (method.isAnnotationPresent(Get.class)) {
+                            addMapping(url, clazz, method, "GET");
+                        }
+                        else if (method.isAnnotationPresent(Post.class)) {
+                            addMapping(url, clazz, method, "POST");
+                        }
+                        // Mapping mapping = new Mapping(clazz.getName(), method);
+                        // String key = method.getAnnotation(Get.class).value();  
+                        // if (urlMappings.containsKey(key)) {
+                        //     throw new ServletException("La methode '"+urlMappings.get(key).getMethod().getName()+"' possede deja l'URL '"+key+"' comme annotation, donc elle ne peux pas etre assigner a la methode '"+mapping.getMethod().getName()+"'");                        }                   
+                        // else{
+                        //     urlMappings.put(key, mapping);
+                        // }
                     }
                 }
             }
+        }
+    }
+
+    private void addMapping(String url, Class<?> clazz, Method method, String verb) throws ServletException {
+        if (urlMappings.containsKey(url)) {
+            Mapping mapping = urlMappings.get(url);
+            try {
+                mapping.addVerb(new Verb(clazz.getName(), method, verb));
+            } catch (Exception e) {
+                throw new ServletException(
+                    e + " La methode '" + mapping.getByHttpverb(verb).getMethod().getName() +
+                    "' avec URL '" + url + "' est deja utilisee pour la methode " +
+                    mapping.getByHttpverb(verb).gethttpVerb() + ". Conflit avec la methode '" +
+                    method.getName() + "' avec URL '" + url + "' pour le verbe '" + verb + "'.");
+            }
+        } else {
+            Mapping map = new Mapping();
+            try {
+                map.addVerb(new Verb(clazz.getName(), method, verb));
+            } catch (Exception e) {
+                throw new ServletException(e);
+            }
+            urlMappings.put(url, map);
         }
     }
 
@@ -131,57 +165,65 @@ public class FrontController extends HttpServlet {
         Mapping mapping = urlMappings.get(url);
 
             if (mapping != null) {
-                try {
-                    Object returnValue = invoke_Method(request, mapping.getClassName(), mapping.getMethod());
-                    Gson gson =new Gson();
-                    if (mapping.getMethod().isAnnotationPresent(RestApi.class)) {
-                        response.setContentType("appliction/gson");
-                        try(PrintWriter out=response.getWriter()){
-                            if (returnValue instanceof ModelView) {
-                                ModelView modelView = (ModelView) returnValue;
-                                HashMap<String, Object> data = modelView.getData();
-                                String jsonData = gson.toJson(data);
+                if (mapping.getByHttpverb(request.getMethod()) !=null) {
+                    String httpverb = request.getMethod();
+                    Verb verb = mapping.getByHttpverb(httpverb);
+                                  
+                    try {
+                        Object returnValue = invoke_Method(request, verb.getClassName(), verb.getMethod());
+                        Gson gson =new Gson();
+                        if (verb.getMethod().isAnnotationPresent(RestApi.class)) {
+                            response.setContentType("appliction/gson");
+                            try(PrintWriter out=response.getWriter()){
+                                if (returnValue instanceof ModelView) {
+                                    ModelView modelView = (ModelView) returnValue;
+                                    HashMap<String, Object> data = modelView.getData();
+                                    String jsonData = gson.toJson(data);
 
-                                out.print(jsonData);
-                            } else {
-                                String jsonData = gson.toJson(returnValue);
-                                out.println(jsonData);
+                                    out.print(jsonData);
+                                } else {
+                                    String jsonData = gson.toJson(returnValue);
+                                    out.println(jsonData);
+                                }
                             }
-                        }
-                    } else {
-                        response.setContentType("text/html;charset=UTF-8");
-                        if (returnValue instanceof String) {
-                            try (PrintWriter out = response.getWriter()) {
-                                out.println("<p>Contenue de la methode <strong>"+mapping.getMethod().getName()+"</strong> : "+(String) returnValue+"</p>");
-                            }
-                        } else if (returnValue instanceof ModelView) {
-                            ModelView modelView = (ModelView) returnValue;
-                            String viewUrl = modelView.getUrl();
-                            HashMap<String, Object> data = modelView.getData();
-        
-        
-                            for (Map.Entry<String, Object> entry : data.entrySet()) {
-                                request.setAttribute(entry.getKey(), entry.getValue());
-                            }
-        
-                            RequestDispatcher dispatcher = request.getRequestDispatcher(viewUrl);
-                            dispatcher.forward(request, response);
-        
-                        } 
-                        else if (returnValue == null) {
-                            throw new ServletException("La methode \""+mapping.getMethod().getName()+"\" retourne une valeur NULL");
-                        }
-                        else {
-                            throw new ServletException("Le type de retour de l'objet \""+returnValue.getClass().getName()+"\" n'est pas pris en charge par le Framework");
-                        }     
-                        
-                    }
-     
-                    
-            } catch (NoSuchMethodException | IOException e) {
-                throw new ServletException("Erreur lors de l'invocation de la methode \""+mapping.getMethod().getName()+"\"", null);
-            }
+                        } else {
+                            response.setContentType("text/html;charset=UTF-8");
+                            if (returnValue instanceof String) {
+                                try (PrintWriter out = response.getWriter()) {
+                                    out.println("<p>Contenue de la methode <strong>"+verb.getMethod().getName()+"</strong> : "+(String) returnValue+"</p>");
+                                }
+                            } else if (returnValue instanceof ModelView) {
+                                ModelView modelView = (ModelView) returnValue;
+                                String viewUrl = modelView.getUrl();
+                                HashMap<String, Object> data = modelView.getData();
             
+            
+                                for (Map.Entry<String, Object> entry : data.entrySet()) {
+                                    request.setAttribute(entry.getKey(), entry.getValue());
+                                }
+            
+                                RequestDispatcher dispatcher = request.getRequestDispatcher(viewUrl);
+                                dispatcher.forward(request, response);
+            
+                            } 
+                            else if (returnValue == null) {
+                                throw new ServletException("La methode \""+verb.getMethod().getName()+"\" retourne une valeur NULL");
+                            }
+                            else {
+                                throw new ServletException("Le type de retour de l'objet \""+returnValue.getClass().getName()+"\" n'est pas pris en charge par le Framework");
+                            }     
+                            
+                        }
+        
+                            
+                    } catch (NoSuchMethodException | IOException e) {
+                        throw new ServletException("Erreur lors de l'invocation de la methode \""+verb.getMethod().getName()+"\"", null);
+                    }
+                }
+                else {
+                    throw new ServletException("Auccune methode HTTP " + request.getMethod() + " pour l'URL " + url);
+                }
+  
             } else {
                 throw new ServletException("Pas de methode Get associer a l'URL: \"" + url +"\"");
             }
