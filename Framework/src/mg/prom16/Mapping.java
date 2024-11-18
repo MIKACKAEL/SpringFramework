@@ -1,29 +1,34 @@
 package mg.prom16;
 
-import java.lang.reflect.Method;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class Mapping {
-    private String className;
-    private Method method;
+    private Set<Verb> verbs ;
 
-    public Mapping(String className, Method method) {
-        this.className = className;
-        this.method = method;
+    public Mapping() {
+        this.verbs = new HashSet<Verb>();
+    }
+    public Set<Verb> getVerbs() {
+        return verbs;
+    }
+    public void addVerb(Verb verb) throws Exception {
+        for (Verb v : verbs) {
+            if (v.gethttpVerb().equalsIgnoreCase(verb.gethttpVerb())) {
+                throw new Exception("Conflit de verbe.");
+            }
+        }
+        verbs.add(verb);
+    }
+    public Verb getByHttpverb(String httpVerb) {
+        for (Verb v : verbs) {
+            if (v.gethttpVerb().equalsIgnoreCase(httpVerb)) {
+                return v;
+            }
+        }
+        return null;
     }
 
-    public String getClassName() {
-        return className;
-    }
 
-    public Method getMethod() {
-        return method;
-    }
-
-    @Override
-    public String toString() {
-        return "Mapping{" +
-                "className='" + className + '\'' +
-                ", methodName='" + method + '\'' +
-                '}';
-    }
 }

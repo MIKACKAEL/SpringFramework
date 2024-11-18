@@ -11,7 +11,7 @@ set lib=.\lib
 set src=.\src
 set bin=.\bin
 set webappFolder=C:\Program Files\Apache Software Foundation\Tomcat 10.1\webapps
-set views=.\Test\views
+set views=..\test\views
 
 rem création du dossier temporaire
 if exist "%temp%" (
