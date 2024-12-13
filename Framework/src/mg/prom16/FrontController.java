@@ -221,11 +221,12 @@ public class FrontController extends HttpServlet {
                     }
                 }
                 else {
-                    throw new ServletException("Auccune methode HTTP " + request.getMethod() + " pour l'URL " + url);
+                    
+                    response.sendError(HttpServletResponse.SC_METHOD_NOT_ALLOWED,"Auccune methode HTTP " + request.getMethod() + " pour l'URL " + url);
                 }
   
             } else {
-                throw new ServletException("Pas de methode Get associer a l'URL: \"" + url +"\"");
+                response.sendError(HttpServletResponse.SC_NOT_FOUND,"Pas de methode Get associer a l'URL: \"" + url +"\"");
             }
         
     }
