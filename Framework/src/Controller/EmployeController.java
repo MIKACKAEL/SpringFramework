@@ -1,6 +1,9 @@
 package Controller;
 
+import java.io.IOException;
+
 import Annotations.Controller;
+import Annotations.FileParam;
 import Annotations.Get;
 import Annotations.ObjectAnnotation;
 import Annotations.Param;
@@ -52,6 +55,7 @@ public class EmployeController {
         String sessionId = mySession.getSession().getId();
         return "Employee ID: " + id + ", Session ID: " + sessionId;
     }
+    
     @Get
     @Url("/employe_session_data")
     public ModelView get_employe_data(@Param(name = "id") String id, @ObjectAnnotation MySession mySession) {
@@ -61,6 +65,15 @@ public class EmployeController {
         modelView.addObject("employeeId", id);
         modelView.addObject("sessionId", mySession.getSession().getId());
 
+        return modelView;
+    }
+      @Post
+    @Url("/uploadImage")
+    public ModelView uploadImage(MySession mySession, @FileParam("imageFile") String imageFilePath) throws IOException {
+
+        ModelView modelView = new ModelView();
+        modelView.setUrl("/views/uploadSuccess.jsp");
+        modelView.addObject("fileName", imageFilePath);
         return modelView;
     }
 
