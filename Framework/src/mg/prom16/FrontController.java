@@ -5,6 +5,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 import com.google.gson.Gson;
@@ -12,12 +15,14 @@ import com.google.gson.Gson;
 import Annotations.*;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 
-
+@MultipartConfig
 public class FrontController extends HttpServlet {
     protected List<Class<?>> list_controller = new ArrayList<>();
     protected Map<String, Mapping> urlMappings = new HashMap<>();
@@ -85,7 +90,7 @@ public class FrontController extends HttpServlet {
         }
     }
 
-    protected Object invoke_Method(HttpServletRequest request, String className, Method method) throws IOException, NoSuchMethodException {
+    protected Object invoke_Method(HttpServletRequest request, String className, Method method) throws IOException, NoSuchMethodException, ServletException {
         Object returnValue = null;
         try {
             Class<?> clazz = Class.forName(className);
@@ -121,8 +126,26 @@ public class FrontController extends HttpServlet {
                     String paramName = methodParams[i].getAnnotation(Param.class).name();
                     String paramValue = paramMap.get(paramName);
                     args[i] = paramValue;
-                }
-                else{
+                } else if (methodParams[i].isAnnotationPresent(FileParam.class)){
+                       String partName = methodParams[i].getAnnotation(FileParam.class).value();
+                    Part part = request.getPart(partName);
+
+                    String fileName = part.getSubmittedFileName();
+                    String uploadDir = getServletContext().getRealPath("/uploads/");
+                    File uploadDirFile = new File(uploadDir);
+
+                    if (!uploadDirFile.exists()) {
+                        uploadDirFile.mkdirs();
+                    }
+
+                    Path filePath = Paths.get(uploadDir, fileName);
+                    try (InputStream fileContent = part.getInputStream()) {
+                        Files.copy(fileContent, filePath);
+                    }
+
+                    String relativeFilePath = "uploads/" + fileName;
+                    args[i] = relativeFilePath;
+                } else{
                     if (paramMap.containsKey(methodParams[i].getName())) {
                         args[i] = paramMap.get(methodParams[i].getName());
                     } else {
@@ -161,6 +184,30 @@ public class FrontController extends HttpServlet {
         // response.setContentType("text/html;charset=UTF-8");
 
         String url = request.getRequestURI().substring(request.getContextPath().length());
+        
+        if (url.startsWith("/uploads/")) {
+            String uploadPath = getServletContext().getRealPath("") + File.separator + "uploads";
+            String filePath = uploadPath + File.separator + url.substring("/uploads/".length());
+    
+            File file = new File(filePath);
+            if (file.exists() && file.isFile()) {
+                response.setContentType(getServletContext().getMimeType(file.getName()));
+                response.setContentLength((int) file.length());
+    
+                try (FileInputStream fis = new FileInputStream(file);
+                     OutputStream out = response.getOutputStream()) {
+                    byte[] buffer = new byte[4096];
+                    int bytesRead;
+                    while ((bytesRead = fis.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                    }
+                }
+                return;
+            } else {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, "Le fichier demandé est introuvable : " + url);
+                return;
+            }
+        }        
 
         Mapping mapping = urlMappings.get(url);
 
